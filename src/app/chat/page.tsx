@@ -28,7 +28,7 @@ export default function ChatPage() {
       <div className="space-y-3 overflow-y-auto pr-2">
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.author === "me" ? "justify-end" : "justify-start"}`}>
-            <div className={`rounded-2xl px-4 py-2 max-w-[75%] text-sm ${m.author === "me" ? "bg-foreground text-background" : "border border-foreground/15"}`}>
+            <div className={`rounded-2xl px-4 py-2 max-w-[75%] text-sm ${m.author === "me" ? "bg-[color:var(--color-primary)] text-[color:var(--color-primary-foreground)]" : "border border-[color:var(--color-border)] bg-[color:var(--color-card)]"}`}>
               {m.text}
             </div>
           </div>
@@ -43,7 +43,7 @@ export default function ChatPage() {
         />
         <button
           onClick={send}
-          className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:opacity-90"
+          className="inline-flex items-center rounded-md bg-[color:var(--color-primary)] text-[color:var(--color-primary-foreground)] px-4 py-2 text-sm font-medium hover:opacity-90"
         >
           Send
         </button>

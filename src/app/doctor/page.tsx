@@ -9,9 +9,9 @@ export default function DoctorDashboardPage() {
         <Card title="Pending signatures" value="2" hint="Lab orders" />
       </div>
 
-      <div className="rounded-xl border border-foreground/10 overflow-hidden">
+      <div className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-foreground/5 text-left">
+          <thead className="bg-[color:var(--color-muted)] text-left">
             <tr>
               <th className="p-3">Time</th>
               <th className="p-3">Patient</th>
@@ -21,13 +21,13 @@ export default function DoctorDashboardPage() {
           </thead>
           <tbody>
             {[1, 2, 3, 4, 5].map((i) => (
-              <tr key={i} className="border-t border-foreground/10">
+              <tr key={i} className="border-t border-[color:var(--color-border)]">
                 <td className="p-3">{9 + i}:00</td>
                 <td className="p-3">Patient {i}</td>
                 <td className="p-3">Video</td>
                 <td className="p-3">
-                  <button className="rounded-md border border-foreground/20 px-3 py-1.5 hover:bg-foreground/5">Chart</button>
-                  <button className="ml-2 rounded-md bg-foreground text-background px-3 py-1.5 hover:opacity-90">Join</button>
+                  <button className="rounded-md border border-[color:var(--color-border)] px-3 py-1.5 hover:bg-[color:var(--color-muted)]">Chart</button>
+                  <button className="ml-2 rounded-md bg-[color:var(--color-primary)] text-[color:var(--color-primary-foreground)] px-3 py-1.5 hover:opacity-90">Join</button>
                 </td>
               </tr>
             ))}

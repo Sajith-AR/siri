@@ -13,19 +13,19 @@ export default function AppointmentsPage() {
       <div className="flex gap-3">
         <Link
           href="/appointments/new"
-          className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:opacity-90"
+          className="inline-flex items-center rounded-md bg-[color:var(--color-primary)] text-[color:var(--color-primary-foreground)] px-4 py-2 text-sm font-medium hover:opacity-90"
         >
           New appointment
         </Link>
         <Link
           href="/patient"
-          className="inline-flex items-center rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+          className="inline-flex items-center rounded-md border border-[color:var(--color-border)] bg-[color:var(--color-card)]/60 px-4 py-2 text-sm font-medium hover:bg-[color:var(--color-muted)]"
         >
           Go to dashboard
         </Link>
       </div>
 
-      <div className="rounded-xl border border-foreground/10 divide-y">
+      <div className="rounded-xl border border-[color:var(--color-border)] divide-y">
         {[1, 2, 3].map((id) => (
           <div key={id} className="p-4 flex items-center justify-between">
             <div>
@@ -35,13 +35,13 @@ export default function AppointmentsPage() {
             <div className="flex gap-2">
               <Link
                 href={`/call/${id}`}
-                className="inline-flex items-center rounded-md border border-foreground/20 px-3 py-1.5 text-sm hover:bg-foreground/5"
+                className="inline-flex items-center rounded-md border border-[color:var(--color-border)] px-3 py-1.5 text-sm hover:bg-[color:var(--color-muted)]"
               >
                 Join call
               </Link>
               <Link
                 href={`/appointments/${id}`}
-                className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-sm hover:opacity-90"
+                className="inline-flex items-center rounded-md bg-[color:var(--color-primary)] text-[color:var(--color-primary-foreground)] px-3 py-1.5 text-sm hover:opacity-90"
               >
                 Details
               </Link>

@@ -44,7 +44,7 @@ export default function NewAppointmentPage() {
           <textarea className="w-full rounded-md border border-foreground/20 bg-transparent px-3 py-2 text-sm" rows={4} />
         </div>
 
-        <button type="submit" className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:opacity-90">
+        <button type="submit" className="inline-flex items-center rounded-md bg-[color:var(--color-primary)] text-[color:var(--color-primary-foreground)] px-4 py-2 text-sm font-medium hover:opacity-90">
           Submit
         </button>
       </form>

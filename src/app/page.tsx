@@ -1,34 +1,35 @@
+"use client";
+
 import Link from "next/link";
+import { useSettings } from "@/context/SettingsContext";
 
 export default function Home() {
+  const { t } = useSettings();
   return (
     <div className="flex flex-col gap-10">
       <section className="text-center sm:text-left">
-        <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight">
-          Quality care from anywhere
+        <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight bg-gradient-to-r from-[color:var(--color-primary)] to-emerald-500 bg-clip-text text-transparent">
+          {t("landingTitle")}
         </h1>
-        <p className="mt-3 text-base text-foreground/80 max-w-2xl">
-          Book appointments, chat with your clinician, access medical records,
-          and join secure video visits — all in one place.
-        </p>
+        <p className="mt-3 text-base text-foreground/80 max-w-2xl">{t("landingSubtitle")}</p>
         <div className="mt-6 flex flex-wrap gap-3 justify-center sm:justify-start">
           <Link
             href="/appointments/new"
-            className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:opacity-90"
+            className="inline-flex items-center rounded-md bg-[color:var(--color-primary)] text-[color:var(--color-primary-foreground)] px-4 py-2 text-sm font-medium hover:opacity-90 shadow"
           >
-            Book an appointment
+            {t("bookAppointment")}
           </Link>
           <Link
             href="/patient"
-            className="inline-flex items-center rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+            className="inline-flex items-center rounded-md border border-[color:var(--color-border)] bg-[color:var(--color-card)]/60 px-4 py-2 text-sm font-medium hover:bg-[color:var(--color-muted)]"
           >
-            Patient dashboard
+            {t("patientDashboard")}
           </Link>
           <Link
             href="/doctor"
-            className="inline-flex items-center rounded-md border border-foreground/20 px-4 py-2 text-sm font-medium hover:bg-foreground/5"
+            className="inline-flex items-center rounded-md border border-[color:var(--color-border)] bg-[color:var(--color-card)]/60 px-4 py-2 text-sm font-medium hover:bg-[color:var(--color-muted)]"
           >
-            Doctor dashboard
+            {t("doctorDashboard")}
           </Link>
         </div>
       </section>
@@ -58,7 +59,7 @@ type FeatureCardProps = {
 
 function FeatureCard({ title, description }: FeatureCardProps) {
   return (
-    <div className="rounded-xl border border-foreground/10 p-5 hover:border-foreground/20 transition-colors">
+    <div className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-5 hover:bg-[color:var(--color-muted)] transition-colors">
       <h3 className="text-lg font-semibold">{title}</h3>
       <p className="mt-1 text-sm text-foreground/70">{description}</p>
     </div>

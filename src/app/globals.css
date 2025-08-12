@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f9fbfb;
+  --foreground: #0f1a1a;
+  --surface: #eef6f6;
+  --card: #ffffff;
+  --muted: #e6f0f0;
+  --border: #d2e4e4;
+  --primary: #0ea5a0; /* teal */
+  --on-primary: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--on-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b1212;
+    --foreground: #e6f3f3;
+    --surface: #0e1a1a;
+    --card: #0f1818;
+    --muted: #0c1515;
+    --border: #1f2d2d;
+    --primary: #34d399; /* emerald for dark pop */
+    --on-primary: #072019;
   }
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1000px 600px at 20% -10%, var(--surface), transparent 60%),
+    radial-gradient(1000px 600px at 120% 10%, var(--surface), transparent 60%),
+    var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Accessibility and rural-friendly enhancements */
+body.textscale-large { font-size: 18px; }
+body.textscale-xlarge { font-size: 20px; }
+
+body.theme-hc {
+  --background: #000;
+  --foreground: #fff;
+  --surface: #000;
+  --card: #000;
+  --muted: #000;
+  --border: #fff;
+  --primary: #ffdd00;
+  --on-primary: #000;
+}
+
+/* Reduce motion and heavy visuals in low-bandwidth mode */
+body.lowbandwidth * { animation: none !important; transition: none !important; }

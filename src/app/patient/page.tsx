@@ -10,14 +10,14 @@ export default function PatientDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-foreground/10 p-4">
+        <div className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-4">
           <h3 className="font-semibold">Recent messages</h3>
           <ul className="mt-2 space-y-2 text-sm">
             <li className="flex justify-between"><span>Dr. Smith</span><span className="text-foreground/70">See you tomorrow!</span></li>
             <li className="flex justify-between"><span>Nurse Lee</span><span className="text-foreground/70">Please review prep</span></li>
           </ul>
         </div>
-        <div className="rounded-xl border border-foreground/10 p-4">
+        <div className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-4">
           <h3 className="font-semibold">Recent records</h3>
           <ul className="mt-2 space-y-2 text-sm">
             <li>CBC - Normal</li>
