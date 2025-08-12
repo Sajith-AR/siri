@@ -12,10 +12,12 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home" },
+  { href: "/symptom-check", label: "Symptom Check" },
   { href: "/appointments", label: "Appointments" },
   { href: "/chat", label: "Chat" },
   { href: "/records", label: "Records" },
   { href: "/call/demo", label: "Call" },
+  { href: "/library", label: "Library" },
 ];
 
 export default function Navbar() {
@@ -42,17 +44,24 @@ export default function Navbar() {
                   (isActive ? "text-foreground font-medium" : "text-foreground/70")
                 }
               >
-                {t(
-                  item.label === "Home"
-                    ? "navHome"
-                    : item.label === "Appointments"
-                    ? "navAppointments"
-                    : item.label === "Chat"
-                    ? "navChat"
-                    : item.label === "Records"
-                    ? "navRecords"
-                    : "navCall"
-                )}
+                {(() => {
+                  switch (item.label) {
+                    case "Home":
+                      return t("navHome");
+                    case "Appointments":
+                      return t("navAppointments");
+                    case "Chat":
+                      return t("navChat");
+                    case "Records":
+                      return t("navRecords");
+                    case "Library":
+                      return t("library");
+                    case "Symptom Check":
+                      return t("startSymptomCheck");
+                    default:
+                      return t("navCall");
+                  }
+                })()}
               </Link>
             );
           })}

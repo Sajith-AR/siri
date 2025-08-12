@@ -4,6 +4,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import SkipLink from "@/components/SkipLink";
 import { SettingsProvider } from "@/context/SettingsContext";
+import EmergencyButton from "@/components/EmergencyButton";
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +38,8 @@ export default function RootLayout({
           <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
             {children}
           </main>
+          <Footer />
+          <EmergencyButton />
         </SettingsProvider>
       </body>
     </html>
