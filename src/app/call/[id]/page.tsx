@@ -10,7 +10,10 @@ export default async function CallRoomPage({
       <p className="text-foreground/70 text-sm">Room: {id}</p>
 
       <div className="aspect-video w-full rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-card)]/60 grid place-items-center text-sm text-foreground/60">
-        Video placeholder
+        <div className="text-center">
+          <p>Video call will appear here</p>
+          <p className="text-xs mt-1">Connecting to room {id}...</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

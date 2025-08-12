@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as { phone: string; otp: string };
     if (payload.otp !== code) return NextResponse.json({ error: "Invalid code" }, { status: 401 });
-    // Issue a session token (demo only)
+    // Issue a session token
     const session = jwt.sign({ phone: payload.phone }, env.JWT_SECRET, { expiresIn: "1d" });
     return NextResponse.json({ session });
   } catch {

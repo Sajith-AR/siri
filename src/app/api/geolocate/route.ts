@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  // Placeholder: client should use navigator.geolocation when available.
-  // This endpoint can be enhanced to reverse-geocode IP if needed.
-  return NextResponse.json({ ok: true });
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const lat = searchParams.get('lat');
+  const lng = searchParams.get('lng');
+  
+  if (!lat || !lng) {
+    return NextResponse.json({ error: "Missing coordinates" }, { status: 400 });
+  }
+
+  // In a real implementation, you'd use a geocoding service
+  // For now, return a basic response
+  return NextResponse.json({ 
+    location: `${lat}, ${lng}`,
+    city: "Location detected",
+    country: "Unknown"
+  });
 }
 
 

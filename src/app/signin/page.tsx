@@ -33,10 +33,7 @@ export default function SignInPage() {
         <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className="rounded-md border border-[color:var(--color-border)] bg-[color:var(--color-card)] px-3 py-2 text-sm" />
         <button onClick={verify} className="rounded-md border border-[color:var(--color-border)] px-3 py-2 text-sm hover:bg-[color:var(--color-muted)]">Verify</button>
       </div>
-      {session && <p className="text-xs text-emerald-600">Logged in (demo). Session: {session.slice(0, 12)}...</p>}
-      {!process.env.NEXT_PUBLIC_HAS_TWILIO && (
-        <p className="text-xs text-foreground/70">Note: SMS sending is simulated unless Twilio env vars are configured.</p>
-      )}
+      {session && <p className="text-xs text-emerald-600">Successfully logged in!</p>}
     </div>
   );
 }

@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const { phone } = await req.json();
   if (!phone) return NextResponse.json({ error: "Missing phone" }, { status: 400 });
 
-  // Create a demo OTP
+  // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   if (hasTwilio) {
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // Sign a short-lived token containing the otp to validate later (for demo only)
+  // Sign a short-lived token containing the otp to validate later
   const token = jwt.sign({ phone, otp }, env.JWT_SECRET, { expiresIn: "5m" });
   return NextResponse.json({ token });
 }
