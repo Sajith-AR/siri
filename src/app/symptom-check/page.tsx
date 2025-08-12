@@ -7,13 +7,38 @@ import ConsentModal from "@/components/ConsentModal";
 
 type HistoryItem = { id: number; text: string; ts: number };
 
+// Minimal typing for browser SpeechRecognition API (cross-vendor)
+type SpeechConstructor = new () => SpeechRecognition;
+type WindowWithSpeech = Window & {
+  webkitSpeechRecognition?: SpeechConstructor;
+  SpeechRecognition?: SpeechConstructor;
+};
+interface SpeechRecognition {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  abort: () => void;
+  onresult: (e: SpeechRecognitionEvent) => void;
+  onend: () => void;
+}
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+}
+interface SpeechRecognitionResultList {
+  [index: number]: SpeechRecognitionResult;
+}
+interface SpeechRecognitionResult {
+  0: { transcript: string };
+}
+
 export default function SymptomCheckPage() {
   const { t, lowBandwidth } = useSettings();
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const router = useRouter();
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("symptom.history");
@@ -22,13 +47,14 @@ export default function SymptomCheckPage() {
 
   useEffect(() => {
     if (!listening) return;
-    const SR: any = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+    const w = window as WindowWithSpeech;
+    const SR: SpeechConstructor | undefined = w.webkitSpeechRecognition || w.SpeechRecognition;
     if (!SR) return;
-    const rec = new SR();
+    const rec: SpeechRecognition = new SR();
     rec.lang = "en-US"; // could map by locale
     rec.continuous = false;
     rec.interimResults = false;
-    rec.onresult = (e: any) => {
+    rec.onresult = (e: SpeechRecognitionEvent) => {
       const transcript = e.results[0][0].transcript;
       setText((prev) => (prev ? prev + " " : "") + transcript);
     };
@@ -106,6 +132,27 @@ export default function SymptomCheckPage() {
             </li>
           ))}
         </ul>
+        <div className="mt-4">
+          <h4 className="font-semibold text-sm mb-2">Image assessment</h4>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const f = (e.target as HTMLFormElement).image as HTMLInputElement;
+              if (!f.files || !f.files[0]) return;
+              const fd = new FormData();
+              fd.append("image", f.files[0]);
+              const res = await fetch("/api/vision", { method: "POST", body: fd });
+              const out = await res.json();
+              alert("Findings: " + (out.findings?.join(", ") || "none"));
+            }}
+            className="space-y-2"
+          >
+            <input name="image" type="file" accept="image/*" className="block w-full text-xs" />
+            <button className="rounded-md border border-[color:var(--color-border)] px-3 py-1.5 text-sm hover:bg-[color:var(--color-muted)]" type="submit">
+              Analyze image
+            </button>
+          </form>
+        </div>
       </aside>
     </div>
   );

@@ -11,7 +11,7 @@ export default function LanguageSwitcher() {
       <select
         className="rounded-md border border-foreground/20 bg-transparent px-2 py-1 text-sm"
         value={locale}
-        onChange={(e) => setLocale(e.target.value as any)}
+        onChange={(e) => setLocale(e.target.value as typeof locale)}
         aria-labelledby={t("language")}
       >
         <option value="en">English</option>

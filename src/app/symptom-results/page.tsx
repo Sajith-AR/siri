@@ -8,6 +8,8 @@ type Result = {
   risk: "low" | "medium" | "high";
   conditions: { name: string; confidence: number }[];
   nextSteps: string[];
+  references?: { title: string; url: string }[];
+  explain?: string;
 };
 
 export default function SymptomResultsPage() {
@@ -39,6 +41,23 @@ export default function SymptomResultsPage() {
             </li>
           ))}
         </ul>
+        {data.explain && (
+          <p className="mt-3 text-xs text-foreground/70">Why: {data.explain}</p>
+        )}
+        {data.references && data.references.length > 0 && (
+          <div className="mt-3">
+            <p className="text-sm font-medium">References</p>
+            <ul className="list-disc pl-5 text-xs mt-1 space-y-1">
+              {data.references.map((r, i) => (
+                <li key={i}>
+                  <a className="underline" href={r.url} target="_blank" rel="noreferrer">
+                    {r.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-4">
