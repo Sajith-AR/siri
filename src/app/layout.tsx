@@ -6,6 +6,7 @@ import SkipLink from "@/components/SkipLink";
 import { SettingsProvider } from "@/context/SettingsContext";
 import EmergencyButton from "@/components/EmergencyButton";
 import Footer from "@/components/Footer";
+import QuickAccessFab from "@/components/QuickAccessFab";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
           </main>
           <Footer />
           <EmergencyButton />
+          <QuickAccessFab />
         </SettingsProvider>
       </body>
     </html>

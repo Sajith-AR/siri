@@ -2,14 +2,38 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { PatientDataManager, Patient, VitalSigns, HealthAssessment, Appointment, Message } from "@/lib/patientData";
 
 export default function PatientDashboardPage() {
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [healthScore, setHealthScore] = useState(0);
-  const [notifications, setNotifications] = useState(3);
+  const [recentVitals, setRecentVitals] = useState<VitalSigns | null>(null);
+  const [latestAssessment, setLatestAssessment] = useState<HealthAssessment | null>(null);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  const [unreadMessages, setUnreadMessages] = useState<Message[]>([]);
 
   useEffect(() => {
+    const dataManager = PatientDataManager.getInstance();
+    const patientData = dataManager.getPatient();
+    setPatient(patientData);
+    setRecentVitals(dataManager.getRecentVitals());
+    setLatestAssessment(dataManager.getLatestAssessment());
+    setUpcomingAppointments(dataManager.getUpcomingAppointments());
+    setUnreadMessages(dataManager.getUnreadMessages());
+
+    // Calculate health score based on real data
+    let score = 85;
+    if (latestAssessment) {
+      if (latestAssessment.riskLevel === 'high') score -= 20;
+      else if (latestAssessment.riskLevel === 'medium') score -= 10;
+    }
+    if (recentVitals) {
+      if (recentVitals.heartRate > 100 || recentVitals.heartRate < 60) score -= 5;
+      if (recentVitals.bloodPressure.systolic > 140) score -= 10;
+    }
+    
     // Animate health score
-    const timer = setTimeout(() => setHealthScore(87), 500);
+    const timer = setTimeout(() => setHealthScore(Math.max(score, 0)), 500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -18,17 +42,26 @@ export default function PatientDashboardPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-gray-900">👋 Welcome back, Sarah!</h1>
+          <h1 className="text-4xl font-bold text-gray-900">
+            👋 Welcome back, {patient ? patient.name.split(' ')[0] : 'Patient'}!
+          </h1>
           <p className="text-xl text-gray-600">Here's your health overview for today</p>
+          {patient && (
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <span>ID: {patient.id}</span>
+              <span>Blood Type: {patient.bloodType}</span>
+              <span>Age: {new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <div className="relative">
             <button className="p-3 rounded-xl bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all">
               🔔
             </button>
-            {notifications > 0 && (
+            {unreadMessages.length > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-sm rounded-full w-6 h-6 flex items-center justify-center font-medium">
-                {notifications}
+                {unreadMessages.length}
               </span>
             )}
           </div>
@@ -60,10 +93,40 @@ export default function PatientDashboardPage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard icon="📅" title="Next appointment" value="Today, 2:00 PM" hint="Video with Dr. Smith" color="blue" />
-        <StatCard icon="💬" title="Unread messages" value="2" hint="From care team" color="purple" />
-        <StatCard icon="💊" title="Prescriptions" value="3 active" hint="Next refill: Aug 25" color="emerald" />
-        <StatCard icon="🏃‍♀️" title="Steps today" value="8,432" hint="Goal: 10,000" color="orange" />
+        <StatCard 
+          icon="📅" 
+          title="Next appointment" 
+          value={upcomingAppointments.length > 0 ? 
+            `${new Date(upcomingAppointments[0].date).toLocaleDateString()}, ${upcomingAppointments[0].time}` : 
+            "No upcoming"
+          } 
+          hint={upcomingAppointments.length > 0 ? 
+            `${upcomingAppointments[0].type} with ${upcomingAppointments[0].doctorName}` : 
+            "Schedule an appointment"
+          } 
+          color="blue" 
+        />
+        <StatCard 
+          icon="💬" 
+          title="Unread messages" 
+          value={unreadMessages.length.toString()} 
+          hint="From care team" 
+          color="purple" 
+        />
+        <StatCard 
+          icon="💊" 
+          title="Prescriptions" 
+          value={`${patient?.medications.length || 0} active`} 
+          hint={patient?.medications.length ? "Medication reminders set" : "No active medications"} 
+          color="emerald" 
+        />
+        <StatCard 
+          icon="🏥" 
+          title="Health conditions" 
+          value={`${patient?.medicalHistory.filter(h => h.status === 'active').length || 0} active`} 
+          hint="Monitored conditions" 
+          color="orange" 
+        />
       </div>
 
       {/* Main Content Grid */}
@@ -74,46 +137,75 @@ export default function PatientDashboardPage() {
             <h3 className="text-2xl font-bold mb-6 text-gray-900">
               📊 Health Trends
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center p-6 bg-red-50 rounded-xl border border-red-100">
-                <div className="text-3xl font-bold text-red-600 mb-2">120/80</div>
-                <div className="text-sm text-red-700 mb-1">Blood Pressure</div>
-                <div className="text-sm text-green-600 font-medium">Normal ✓</div>
+            {recentVitals ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-6 bg-red-50 rounded-xl border border-red-100">
+                  <div className="text-3xl font-bold text-red-600 mb-2">
+                    {recentVitals.bloodPressure.systolic}/{recentVitals.bloodPressure.diastolic}
+                  </div>
+                  <div className="text-sm text-red-700 mb-1">Blood Pressure</div>
+                  <div className={`text-sm font-medium ${
+                    recentVitals.bloodPressure.systolic > 140 ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {recentVitals.bloodPressure.systolic > 140 ? 'High ⚠️' : 'Normal ✓'}
+                  </div>
+                </div>
+                <div className="text-center p-6 bg-blue-50 rounded-xl border border-blue-100">
+                  <div className="text-3xl font-bold text-blue-600 mb-2">{recentVitals.heartRate}</div>
+                  <div className="text-sm text-blue-700 mb-1">Heart Rate</div>
+                  <div className={`text-sm font-medium ${
+                    recentVitals.heartRate > 100 || recentVitals.heartRate < 60 ? 'text-yellow-600' : 'text-green-600'
+                  }`}>
+                    {recentVitals.heartRate > 100 || recentVitals.heartRate < 60 ? 'Monitor ⚠️' : 'Good ✓'}
+                  </div>
+                </div>
+                <div className="text-center p-6 bg-purple-50 rounded-xl border border-purple-100">
+                  <div className="text-3xl font-bold text-purple-600 mb-2">{recentVitals.temperature}°F</div>
+                  <div className="text-sm text-purple-700 mb-1">Temperature</div>
+                  <div className={`text-sm font-medium ${
+                    recentVitals.temperature > 100.4 ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {recentVitals.temperature > 100.4 ? 'Fever ⚠️' : 'Normal ✓'}
+                  </div>
+                </div>
               </div>
-              <div className="text-center p-6 bg-blue-50 rounded-xl border border-blue-100">
-                <div className="text-3xl font-bold text-blue-600 mb-2">72</div>
-                <div className="text-sm text-blue-700 mb-1">Heart Rate</div>
-                <div className="text-sm text-green-600 font-medium">Good ✓</div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">📱</div>
+                <p className="text-gray-600 mb-4">No recent vitals recorded</p>
+                <Link
+                  href="/vitals-scan"
+                  className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:from-cyan-700 hover:to-blue-700 transition-all"
+                >
+                  Scan Vitals Now
+                </Link>
               </div>
-              <div className="text-center p-6 bg-purple-50 rounded-xl border border-purple-100">
-                <div className="text-3xl font-bold text-purple-600 mb-2">98.6°F</div>
-                <div className="text-sm text-purple-700 mb-1">Temperature</div>
-                <div className="text-sm text-green-600 font-medium">Normal ✓</div>
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
             <h3 className="text-2xl font-bold mb-6 text-gray-900">💬 Recent Messages</h3>
             <div className="space-y-4">
-              <MessageItem 
-                sender="Dr. Smith" 
-                message="Your test results look great! See you at our appointment today." 
-                time="2 hours ago"
-                unread={true}
-              />
-              <MessageItem 
-                sender="Nurse Johnson" 
-                message="Please remember to take your medication with food." 
-                time="1 day ago"
-                unread={true}
-              />
-              <MessageItem 
-                sender="Lab Results" 
-                message="Your blood work is complete and available to view." 
-                time="3 days ago"
-                unread={false}
-              />
+              {patient?.messages.slice(0, 3).map((message) => (
+                <MessageItem 
+                  key={message.id}
+                  sender={message.senderName} 
+                  message={message.content} 
+                  time={new Date(message.timestamp).toLocaleDateString()}
+                  unread={!message.read}
+                />
+              )) || (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-4">💬</div>
+                  <p className="text-gray-600 mb-4">No messages yet</p>
+                  <Link
+                    href="/chat"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
+                  >
+                    Start Conversation
+                  </Link>
+                </div>
+              )}
             </div>
             <Link href="/chat" className="block mt-6 text-center text-blue-600 hover:text-blue-700 font-semibold text-lg">
               View all messages →
