@@ -10,12 +10,14 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "jose": "^6.0.12",
     "jsonwebtoken": "^9.0.2",
     "next": "15.4.6",
     "openai": "^5.12.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "twilio": "^5.8.0"
+    "twilio": "^5.8.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
