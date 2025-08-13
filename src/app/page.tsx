@@ -18,82 +18,125 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-24">
         
         {/* Hero Section */}
-        <section className="text-center space-y-10">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-teal-700 border-2 border-teal-200 shadow-sm">
-              🏥 Complete Healthcare Platform
+        <section className="text-center space-y-12 animate-fadeInUp">
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-teal-50 to-emerald-50 px-8 py-4 text-sm font-bold text-teal-700 border-2 border-teal-200 shadow-lg">
+              <span className="text-lg">🏥</span>
+              Next-Generation Healthcare Platform
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-gray-900 leading-tight">
-              {t("landingTitle") || "Your Health, Simplified"}
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight text-gray-900 leading-tight">
+              <span className="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                {t("landingTitle") || "Health Made Simple"}
+              </span>
             </h1>
             
-            <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
-              Access all your healthcare needs in one place. From AI symptom checking to health monitoring, 
-              we've got everything you need for better health management.
+            <p className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed font-medium">
+              Experience the future of healthcare with AI-powered diagnostics, real-time health monitoring, 
+              and personalized care - all in one beautiful, intuitive platform.
             </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
+              <Link
+                href="/symptom-check"
+                className="group bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center gap-3"
+              >
+                <span className="text-2xl group-hover:animate-bounce">🚀</span>
+                Get Started Free
+              </Link>
+              <Link
+                href="/patient"
+                className="group bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-lg border-2 border-gray-200 hover:border-teal-300 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-3"
+              >
+                <span className="text-2xl">📊</span>
+                View Dashboard
+              </Link>
+            </div>
           </div>
           
-          {/* Quick Access Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          {/* Quick Access Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto pt-8">
             <Link
               href="/symptom-check"
-              className="group bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-6 rounded-2xl hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+              className="group relative bg-white p-8 rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border border-gray-100 overflow-hidden"
             >
-              <div className="text-3xl mb-3 group-hover:animate-bounce">🤖</div>
-              <div className="font-bold text-lg">AI Symptom Check</div>
-              <div className="text-sm opacity-90">Instant health analysis</div>
+              <div className="absolute inset-0 bg-gradient-to-br from-teal-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-4xl mb-4 group-hover:animate-bounce">🤖</div>
+                <div className="font-bold text-xl text-gray-900 mb-2">AI Symptom Check</div>
+                <div className="text-gray-600 text-sm">Instant AI-powered health analysis</div>
+              </div>
             </Link>
             
             <Link
               href="/vitals-scan"
-              className="group bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6 rounded-2xl hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+              className="group relative bg-white p-8 rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border border-gray-100 overflow-hidden"
             >
-              <div className="text-3xl mb-3 group-hover:animate-pulse">📱</div>
-              <div className="font-bold text-lg">Vitals Scan</div>
-              <div className="text-sm opacity-90">Camera-based monitoring</div>
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-4xl mb-4 group-hover:animate-pulse">📱</div>
+                <div className="font-bold text-xl text-gray-900 mb-2">Vitals Scan</div>
+                <div className="text-gray-600 text-sm">Camera-based vital monitoring</div>
+              </div>
             </Link>
             
             <Link
               href="/ai-assistant"
-              className="group bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-6 rounded-2xl hover:from-indigo-600 hover:to-purple-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+              className="group relative bg-white p-8 rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border border-gray-100 overflow-hidden"
             >
-              <div className="text-3xl mb-3 group-hover:animate-bounce">🧠</div>
-              <div className="font-bold text-lg">AI Assistant</div>
-              <div className="text-sm opacity-90">Personal health guide</div>
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-4xl mb-4 group-hover:animate-bounce">🧠</div>
+                <div className="font-bold text-xl text-gray-900 mb-2">AI Assistant</div>
+                <div className="text-gray-600 text-sm">Personal health companion</div>
+              </div>
             </Link>
             
             <Link
               href="/patient"
-              className="group bg-gradient-to-r from-emerald-500 to-green-500 text-white p-6 rounded-2xl hover:from-emerald-600 hover:to-green-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+              className="group relative bg-white p-8 rounded-3xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 border border-gray-100 overflow-hidden"
             >
-              <div className="text-3xl mb-3 group-hover:animate-pulse">📊</div>
-              <div className="font-bold text-lg">Dashboard</div>
-              <div className="text-sm opacity-90">Your health overview</div>
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 to-green-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-4xl mb-4 group-hover:animate-pulse">📊</div>
+                <div className="font-bold text-xl text-gray-900 mb-2">Health Dashboard</div>
+                <div className="text-gray-600 text-sm">Complete health overview</div>
+              </div>
             </Link>
           </div>
         </section>
 
         {/* Stats Section */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center p-10 rounded-3xl bg-gradient-to-br from-cyan-50 to-blue-100 border-2 border-cyan-200 shadow-lg hover:shadow-xl transition-all duration-300">
-            <div className="text-5xl font-bold text-cyan-600 mb-3">{stats.patients.toLocaleString()}+</div>
-            <div className="text-xl text-cyan-700 font-semibold">Lives Improved</div>
-            <div className="text-sm text-cyan-600 mt-2">Through personalized care</div>
-          </div>
-          <div className="text-center p-10 rounded-3xl bg-gradient-to-br from-emerald-50 to-green-100 border-2 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300">
-            <div className="text-5xl font-bold text-emerald-600 mb-3">{stats.consultations.toLocaleString()}+</div>
-            <div className="text-xl text-emerald-700 font-semibold">Health Assessments</div>
-            <div className="text-sm text-emerald-600 mt-2">AI-powered insights</div>
-          </div>
-          <div className="text-center p-10 rounded-3xl bg-gradient-to-br from-purple-50 to-pink-100 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
-            <div className="text-5xl font-bold text-purple-600 mb-3">{stats.satisfaction}%</div>
-            <div className="text-xl text-purple-700 font-semibold">User Satisfaction</div>
-            <div className="text-sm text-purple-600 mt-2">Trusted by families worldwide</div>
+        <section className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-teal-100 via-emerald-100 to-cyan-100 rounded-3xl transform rotate-1 opacity-50"></div>
+          <div className="relative bg-white rounded-3xl p-12 shadow-2xl border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center group">
+                <div className="text-6xl font-black text-transparent bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text mb-4 group-hover:scale-110 transition-transform duration-300">
+                  {stats.patients.toLocaleString()}+
+                </div>
+                <div className="text-2xl text-gray-800 font-bold mb-2">Lives Transformed</div>
+                <div className="text-gray-600">Through AI-powered personalized care</div>
+              </div>
+              <div className="text-center group">
+                <div className="text-6xl font-black text-transparent bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text mb-4 group-hover:scale-110 transition-transform duration-300">
+                  {stats.consultations.toLocaleString()}+
+                </div>
+                <div className="text-2xl text-gray-800 font-bold mb-2">Smart Assessments</div>
+                <div className="text-gray-600">Instant AI health evaluations</div>
+              </div>
+              <div className="text-center group">
+                <div className="text-6xl font-black text-transparent bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text mb-4 group-hover:scale-110 transition-transform duration-300">
+                  {stats.satisfaction}%
+                </div>
+                <div className="text-2xl text-gray-800 font-bold mb-2">Satisfaction Rate</div>
+                <div className="text-gray-600">Trusted by healthcare professionals</div>
+              </div>
+            </div>
           </div>
         </section>
 

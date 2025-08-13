@@ -29,29 +29,29 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm shadow-sm">
+    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/90 backdrop-blur-md shadow-lg">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-18">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="text-2xl">🏥</div>
-            <span className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
-              {t("appTitle") || "HealthCare"}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="text-3xl group-hover:animate-bounce">🏥</div>
+            <span className="text-2xl font-black bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+              {t("appTitle") || "HealthHub"}
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-2">
             {NAV_ITEMS.map((item) => {
               const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${
                     isActive 
-                      ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg" 
-                      : "text-gray-700 hover:bg-gray-100 hover:text-cyan-600"
+                      ? "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-xl transform scale-105" 
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 hover:text-teal-700 hover:shadow-md"
                   }`}
                 >
                   {(() => {
@@ -78,24 +78,24 @@ export default function Navbar() {
             <TopBarControls />
             
             {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-3">
               <Link
                 href="/help"
-                className="px-3 py-2 text-sm text-gray-600 hover:text-cyan-600 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-teal-600 transition-colors rounded-xl hover:bg-teal-50"
               >
                 Help
               </Link>
               <Link
                 href="/signin"
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 text-sm font-bold text-gray-700 border-2 border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-teal-300 transition-all shadow-md hover:shadow-lg"
               >
                 Sign In
               </Link>
               <Link
                 href="/signup"
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all shadow-lg"
+                className="px-6 py-3 text-sm font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl hover:from-teal-700 hover:to-emerald-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
-                Sign Up
+                Get Started
               </Link>
             </div>
 
@@ -115,8 +115,8 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 bg-white">
-            <div className="px-4 py-4 space-y-2">
+          <div className="lg:hidden border-t border-gray-100 bg-white/95 backdrop-blur-md">
+            <div className="px-4 py-6 space-y-3">
               {NAV_ITEMS.map((item) => {
                 const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
                 return (
@@ -124,10 +124,10 @@ export default function Navbar() {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`block px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    className={`block px-6 py-4 rounded-2xl text-sm font-bold transition-all ${
                       isActive 
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white" 
-                        : "text-gray-700 hover:bg-gray-100"
+                        ? "bg-gradient-to-r from-teal-500 to-emerald-500 text-white shadow-lg" 
+                        : "text-gray-700 hover:bg-gradient-to-r hover:from-teal-50 hover:to-emerald-50 hover:text-teal-700"
                     }`}
                   >
                     {(() => {
@@ -149,27 +149,27 @@ export default function Navbar() {
               })}
               
               {/* Mobile Auth Buttons */}
-              <div className="pt-4 border-t border-gray-200 space-y-2">
+              <div className="pt-6 border-t border-gray-200 space-y-3">
                 <Link
                   href="/help"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-sm text-gray-600 hover:bg-gray-100 rounded-xl"
+                  className="block px-6 py-4 text-sm font-medium text-gray-600 hover:bg-teal-50 hover:text-teal-600 rounded-2xl transition-all"
                 >
                   Help & Support
                 </Link>
                 <Link
                   href="/signin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-sm font-medium text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 text-center"
+                  className="block px-6 py-4 text-sm font-bold text-gray-700 border-2 border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-teal-300 text-center transition-all"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/signup"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl hover:from-cyan-700 hover:to-blue-700 text-center"
+                  className="block px-6 py-4 text-sm font-bold text-white bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl hover:from-teal-700 hover:to-emerald-700 text-center shadow-xl transition-all"
                 >
-                  Sign Up
+                  Get Started
                 </Link>
               </div>
             </div>

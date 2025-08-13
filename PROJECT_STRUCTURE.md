@@ -61,8 +61,8 @@ siri/
 │   │   ├── 📄 LowBandwidthToggle.tsx # Accessibility feature
 │   │   ├── 📄 Navbar.tsx           # Navigation bar
 │   │   ├── 📄 SkipLink.tsx         # Accessibility skip link
-│   │   ├── 📄 TextSizeToggle.tsx   # Text scaling
-│   │   ├── 📄 ThemeToggle.tsx      # Theme switching
+│   │   ├── 📄 LanguageSwitcher.tsx # Language selection
+│   │   ├── 📄 LowBandwidthToggle.tsx # Bandwidth optimization
 │   │   └── 📄 TopBarControls.tsx   # Top bar controls
 │   │
 │   ├── 📂 context/                 # React Context Providers

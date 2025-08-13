@@ -151,10 +151,10 @@ console.log(t('landingTitle')); // "कहीं से भी गुणवत�
 
 ### **Accessibility Features**
 ```typescript
-// Theme and text scaling
-const { theme, setTheme, textScale, setTextScale } = useSettings();
-setTheme('hc'); // High contrast mode
-setTextScale('xlarge'); // Extra large text
+// Language and bandwidth settings
+const { locale, setLocale, lowBandwidth, setLowBandwidth } = useSettings();
+setLocale('hi'); // Hindi language
+setLowBandwidth(true); // Enable low bandwidth mode
 ```
 
 ## 🏆 **Hackathon Highlights**

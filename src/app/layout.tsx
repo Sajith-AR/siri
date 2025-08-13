@@ -36,7 +36,7 @@ export default function RootLayout({
         <SettingsProvider>
           <SkipLink />
           <Navbar />
-          <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+          <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
             {children}
           </main>
           <Footer />

@@ -1,16 +1,12 @@
 "use client";
 
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import ThemeToggle from "@/components/ThemeToggle";
-import TextSizeToggle from "@/components/TextSizeToggle";
 import LowBandwidthToggle from "@/components/LowBandwidthToggle";
 
 export default function TopBarControls() {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <LanguageSwitcher />
-      <ThemeToggle />
-      <TextSizeToggle />
       <LowBandwidthToggle />
     </div>
   );
