@@ -1,299 +1,460 @@
-// Database abstraction layer for healthcare data
+// MongoDB-based database abstraction layer for healthcare data
+import mongoose from 'mongoose';
 import { cache } from "./cache";
 import { logger } from "./logging";
+import connectToDatabase from "./mongodb";
 
-export interface Patient {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  dateOfBirth: string;
-  gender: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  bloodType?: string;
-  allergies: string[];
-  medications: string[];
-  medicalHistory: string[];
-  emergencyContact?: {
-    name: string;
-    phone: string;
-    relationship: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+// Import models
+import Patient, { IPatient } from "./models/Patient";
+import HealthRecord, { IHealthRecord } from "./models/HealthRecord";
+import Appointment, { IAppointment } from "./models/Appointment";
+import Doctor, { IDoctor } from "./models/Doctor";
 
-export interface HealthRecord {
-  id: string;
-  patientId: string;
-  type: 'symptom_check' | 'ai_consultation' | 'vital_signs' | 'medication' | 'appointment';
-  data: any;
-  timestamp: string;
-  provider?: string;
-  confidence?: number;
-  tags: string[];
-}
+// Type exports for compatibility (avoiding duplicate identifiers)
+export type PatientType = IPatient;
+export type HealthRecordType = IHealthRecord;
+export type AppointmentType = IAppointment;
+export type DoctorType = IDoctor;
 
-export interface Appointment {
-  id: string;
-  patientId: string;
-  doctorId: string;
-  dateTime: string;
-  type: 'consultation' | 'follow_up' | 'emergency' | 'routine_checkup';
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  duration: number; // minutes
-  notes?: string;
-  symptoms?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+// MongoDB-based database class
+class MongoDatabase {
+  constructor() {
+    // Ensure database connection on instantiation
+    this.ensureConnection();
+  }
 
-export interface Doctor {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  specialization: string;
-  licenseNumber: string;
-  phone: string;
-  availability: {
-    dayOfWeek: number; // 0-6 (Sunday-Saturday)
-    startTime: string; // HH:MM
-    endTime: string; // HH:MM
-  }[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-// In-memory database simulation (replace with real database in production)
-class InMemoryDatabase {
-  private patients = new Map<string, Patient>();
-  private healthRecords = new Map<string, HealthRecord>();
-  private appointments = new Map<string, Appointment>();
-  private doctors = new Map<string, Doctor>();
+  private async ensureConnection(): Promise<void> {
+    try {
+      await connectToDatabase();
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to connect to database',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+    }
+  }
 
   // Patient operations
-  async createPatient(patient: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>): Promise<Patient> {
-    const id = this.generateId('patient');
-    const now = new Date().toISOString();
+  async createPatient(patientData: Partial<IPatient>): Promise<IPatient> {
+    await this.ensureConnection();
     
-    const newPatient: Patient = {
-      ...patient,
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    this.patients.set(id, newPatient);
-    cache.set(`patient:${id}`, newPatient, 600000); // 10 minutes
-    
-    await logger.log({
-      level: 'info',
-      message: `Patient created: ${id}`,
-      metadata: { patientId: id, email: patient.email }
-    });
-    
-    return newPatient;
+    try {
+      const patient = new Patient(patientData);
+      const savedPatient = await patient.save();
+      
+      // Cache the patient
+      cache.set(`patient:${savedPatient._id}`, savedPatient.toObject(), 600000);
+      
+      await logger.log({
+        level: 'info',
+        message: `Patient created: ${savedPatient._id}`,
+        metadata: { patientId: savedPatient._id.toString(), email: savedPatient.email }
+      });
+      
+      return savedPatient;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to create patient',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      throw error;
+    }
   }
 
-  async getPatient(id: string): Promise<Patient | null> {
+  async getPatient(id: string): Promise<IPatient | null> {
+    await this.ensureConnection();
+    
     // Check cache first
-    const cached = cache.get<Patient>(`patient:${id}`);
+    const cached = cache.get<IPatient>(`patient:${id}`);
     if (cached) return cached;
     
-    const patient = this.patients.get(id) || null;
-    if (patient) {
-      cache.set(`patient:${id}`, patient, 600000);
+    try {
+      const patient = await Patient.findById(id).exec();
+      if (patient) {
+        cache.set(`patient:${id}`, patient.toObject(), 600000);
+      }
+      return patient;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get patient: ${id}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return null;
     }
-    
-    return patient;
   }
 
-  async updatePatient(id: string, updates: Partial<Patient>): Promise<Patient | null> {
-    const existing = this.patients.get(id);
-    if (!existing) return null;
+  async updatePatient(id: string, updates: Partial<IPatient>): Promise<IPatient | null> {
+    await this.ensureConnection();
     
-    const updated: Patient = {
-      ...existing,
-      ...updates,
-      id, // Ensure ID doesn't change
-      updatedAt: new Date().toISOString()
-    };
-    
-    this.patients.set(id, updated);
-    cache.set(`patient:${id}`, updated, 600000);
-    
-    await logger.log({
-      level: 'info',
-      message: `Patient updated: ${id}`,
-      metadata: { patientId: id, updates: Object.keys(updates) }
-    });
-    
-    return updated;
+    try {
+      const patient = await Patient.findByIdAndUpdate(
+        id,
+        { $set: updates },
+        { new: true, runValidators: true }
+      ).exec();
+      
+      if (patient) {
+        cache.set(`patient:${id}`, patient.toObject(), 600000);
+        
+        await logger.log({
+          level: 'info',
+          message: `Patient updated: ${id}`,
+          metadata: { patientId: id, updates: Object.keys(updates) }
+        });
+      }
+      
+      return patient;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to update patient: ${id}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return null;
+    }
   }
 
   async deletePatient(id: string): Promise<boolean> {
-    const deleted = this.patients.delete(id);
-    if (deleted) {
-      cache.invalidate(`patient:${id}`);
+    await this.ensureConnection();
+    
+    try {
+      // Soft delete by setting isActive to false
+      const patient = await Patient.findByIdAndUpdate(
+        id,
+        { $set: { isActive: false } },
+        { new: true }
+      ).exec();
+      
+      if (patient) {
+        cache.invalidate(`patient:${id}`);
+        
+        await logger.log({
+          level: 'info',
+          message: `Patient deleted (soft): ${id}`,
+          metadata: { patientId: id }
+        });
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
       await logger.log({
-        level: 'info',
-        message: `Patient deleted: ${id}`,
-        metadata: { patientId: id }
+        level: 'error',
+        message: `Failed to delete patient: ${id}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
       });
+      return false;
     }
-    return deleted;
   }
 
-  async findPatientByEmail(email: string): Promise<Patient | null> {
-    for (const patient of this.patients.values()) {
-      if (patient.email === email) {
-        return patient;
-      }
+  async findPatientByEmail(email: string): Promise<IPatient | null> {
+    await this.ensureConnection();
+    
+    try {
+      const patient = await Patient.findByEmail(email);
+      return patient;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to find patient by email: ${email}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return null;
     }
-    return null;
   }
 
   // Health record operations
-  async createHealthRecord(record: Omit<HealthRecord, 'id'>): Promise<HealthRecord> {
-    const id = this.generateId('record');
-    const newRecord: HealthRecord = { ...record, id };
+  async createHealthRecord(recordData: Partial<IHealthRecord>): Promise<IHealthRecord> {
+    await this.ensureConnection();
     
-    this.healthRecords.set(id, newRecord);
-    
-    // Invalidate patient cache to ensure fresh data
-    cache.invalidateByPattern(new RegExp(`patient:${record.patientId}`));
-    
-    await logger.log({
-      level: 'info',
-      message: `Health record created: ${id}`,
-      metadata: { recordId: id, patientId: record.patientId, type: record.type }
-    });
-    
-    return newRecord;
+    try {
+      const record = new HealthRecord({
+        ...recordData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      const savedRecord = await record.save();
+      
+      // Invalidate patient cache
+      if (recordData.patientId) {
+        cache.invalidateByPattern(new RegExp(`patient:${recordData.patientId}`));
+      }
+      
+      await logger.log({
+        level: 'info',
+        message: `Health record created: ${savedRecord._id}`,
+        metadata: { 
+          recordId: savedRecord._id.toString(), 
+          patientId: savedRecord.patientId?.toString(), 
+          type: savedRecord.type 
+        }
+      });
+      
+      return savedRecord;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to create health record',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      throw error;
+    }
   }
 
-  async getHealthRecord(id: string): Promise<HealthRecord | null> {
-    return this.healthRecords.get(id) || null;
+  async getHealthRecord(id: string): Promise<IHealthRecord | null> {
+    await this.ensureConnection();
+    
+    try {
+      const record = await HealthRecord.findById(id)
+        .populate('patientId', 'firstName lastName email')
+        .populate('createdBy', 'firstName lastName specialization')
+        .exec();
+      
+      return record;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get health record: ${id}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return null;
+    }
   }
 
-  async getPatientHealthRecords(patientId: string, type?: string): Promise<HealthRecord[]> {
-    const cacheKey = `records:${patientId}:${type || 'all'}`;
-    const cached = cache.get<HealthRecord[]>(cacheKey);
+  async getPatientHealthRecords(patientId: string, type?: string, limit: number = 50): Promise<IHealthRecord[]> {
+    await this.ensureConnection();
+    
+    const cacheKey = `records:${patientId}:${type || 'all'}:${limit}`;
+    const cached = cache.get<IHealthRecord[]>(cacheKey);
     if (cached) return cached;
     
-    const records = Array.from(this.healthRecords.values())
-      .filter(record => {
-        if (record.patientId !== patientId) return false;
-        if (type && record.type !== type) return false;
-        return true;
-      })
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-    
-    cache.set(cacheKey, records, 300000); // 5 minutes
-    return records;
+    try {
+      const records = await HealthRecord.findByPatient(
+        new mongoose.Types.ObjectId(patientId),
+        type,
+        limit
+      );
+      
+      cache.set(cacheKey, records.map((r: IHealthRecord) => r.toObject()), 300000);
+      return records;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get patient health records: ${patientId}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
   }
 
   // Appointment operations
-  async createAppointment(appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment> {
-    const id = this.generateId('appointment');
-    const now = new Date().toISOString();
+  async createAppointment(appointmentData: Partial<IAppointment>): Promise<IAppointment> {
+    await this.ensureConnection();
     
-    const newAppointment: Appointment = {
-      ...appointment,
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
+    try {
+      const appointment = new Appointment(appointmentData);
+      const savedAppointment = await appointment.save();
+      
+      await logger.log({
+        level: 'info',
+        message: `Appointment created: ${savedAppointment._id}`,
+        metadata: { 
+          appointmentId: savedAppointment._id.toString(), 
+          patientId: savedAppointment.patientId?.toString(), 
+          doctorId: savedAppointment.doctorId?.toString(),
+          dateTime: savedAppointment.dateTime
+        }
+      });
+      
+      return savedAppointment;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to create appointment',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      throw error;
+    }
+  }
+
+  async getAppointment(id: string): Promise<IAppointment | null> {
+    await this.ensureConnection();
     
-    this.appointments.set(id, newAppointment);
+    try {
+      const appointment = await Appointment.findById(id)
+        .populate('patientId', 'firstName lastName email phone')
+        .populate('doctorId', 'firstName lastName specialization')
+        .exec();
+      
+      return appointment;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get appointment: ${id}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return null;
+    }
+  }
+
+  async getPatientAppointments(patientId: string, status?: string, limit: number = 50): Promise<IAppointment[]> {
+    await this.ensureConnection();
     
-    await logger.log({
-      level: 'info',
-      message: `Appointment created: ${id}`,
-      metadata: { 
-        appointmentId: id, 
-        patientId: appointment.patientId, 
-        doctorId: appointment.doctorId,
-        dateTime: appointment.dateTime
+    try {
+      const appointments = await Appointment.findByPatient(
+        new mongoose.Types.ObjectId(patientId),
+        status,
+        limit
+      );
+      
+      return appointments;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get patient appointments: ${patientId}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
+  }
+
+  async getDoctorAppointments(doctorId: string, status?: string, limit: number = 50): Promise<IAppointment[]> {
+    await this.ensureConnection();
+    
+    try {
+      const appointments = await Appointment.findByDoctor(
+        new mongoose.Types.ObjectId(doctorId),
+        status,
+        limit
+      );
+      
+      return appointments;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get doctor appointments: ${doctorId}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
+  }
+
+  async updateAppointment(id: string, updates: Partial<IAppointment>): Promise<IAppointment | null> {
+    await this.ensureConnection();
+    
+    try {
+      const appointment = await Appointment.findByIdAndUpdate(
+        id,
+        { $set: updates },
+        { new: true, runValidators: true }
+      )
+        .populate('patientId', 'firstName lastName email phone')
+        .populate('doctorId', 'firstName lastName specialization')
+        .exec();
+      
+      if (appointment) {
+        await logger.log({
+          level: 'info',
+          message: `Appointment updated: ${id}`,
+          metadata: { appointmentId: id, updates: Object.keys(updates) }
+        });
       }
-    });
-    
-    return newAppointment;
-  }
-
-  async getAppointment(id: string): Promise<Appointment | null> {
-    return this.appointments.get(id) || null;
-  }
-
-  async getPatientAppointments(patientId: string): Promise<Appointment[]> {
-    return Array.from(this.appointments.values())
-      .filter(appointment => appointment.patientId === patientId)
-      .sort((a, b) => a.dateTime.localeCompare(b.dateTime));
-  }
-
-  async getDoctorAppointments(doctorId: string): Promise<Appointment[]> {
-    return Array.from(this.appointments.values())
-      .filter(appointment => appointment.doctorId === doctorId)
-      .sort((a, b) => a.dateTime.localeCompare(b.dateTime));
-  }
-
-  async updateAppointment(id: string, updates: Partial<Appointment>): Promise<Appointment | null> {
-    const existing = this.appointments.get(id);
-    if (!existing) return null;
-    
-    const updated: Appointment = {
-      ...existing,
-      ...updates,
-      id,
-      updatedAt: new Date().toISOString()
-    };
-    
-    this.appointments.set(id, updated);
-    
-    await logger.log({
-      level: 'info',
-      message: `Appointment updated: ${id}`,
-      metadata: { appointmentId: id, updates: Object.keys(updates) }
-    });
-    
-    return updated;
+      
+      return appointment;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to update appointment: ${id}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return null;
+    }
   }
 
   // Doctor operations
-  async createDoctor(doctor: Omit<Doctor, 'id' | 'createdAt' | 'updatedAt'>): Promise<Doctor> {
-    const id = this.generateId('doctor');
-    const now = new Date().toISOString();
+  async createDoctor(doctorData: Partial<IDoctor>): Promise<IDoctor> {
+    await this.ensureConnection();
     
-    const newDoctor: Doctor = {
-      ...doctor,
-      id,
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    this.doctors.set(id, newDoctor);
-    
-    await logger.log({
-      level: 'info',
-      message: `Doctor created: ${id}`,
-      metadata: { doctorId: id, email: doctor.email, specialization: doctor.specialization }
-    });
-    
-    return newDoctor;
+    try {
+      const doctor = new Doctor(doctorData);
+      const savedDoctor = await doctor.save();
+      
+      await logger.log({
+        level: 'info',
+        message: `Doctor created: ${savedDoctor._id}`,
+        metadata: { 
+          doctorId: savedDoctor._id.toString(), 
+          email: savedDoctor.email, 
+          specialization: savedDoctor.specialization 
+        }
+      });
+      
+      return savedDoctor;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to create doctor',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      throw error;
+    }
   }
 
-  async getDoctor(id: string): Promise<Doctor | null> {
-    return this.doctors.get(id) || null;
+  async getDoctor(id: string): Promise<IDoctor | null> {
+    await this.ensureConnection();
+    
+    try {
+      const doctor = await Doctor.findById(id).exec();
+      return doctor;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get doctor: ${id}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return null;
+    }
   }
 
-  async getDoctorsBySpecialization(specialization: string): Promise<Doctor[]> {
-    return Array.from(this.doctors.values())
-      .filter(doctor => doctor.specialization.toLowerCase().includes(specialization.toLowerCase()));
+  async getDoctorsBySpecialization(specialization: string, limit: number = 20): Promise<IDoctor[]> {
+    await this.ensureConnection();
+    
+    try {
+      const doctors = await Doctor.findBySpecialization(specialization, limit);
+      return doctors;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to get doctors by specialization: ${specialization}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
   }
 
-  async getAllDoctors(): Promise<Doctor[]> {
-    return Array.from(this.doctors.values());
+  async getAllDoctors(limit: number = 100): Promise<IDoctor[]> {
+    await this.ensureConnection();
+    
+    try {
+      const doctors = await Doctor.find({ isActive: true, isVerified: true })
+        .sort({ 'rating.average': -1, experience: -1 })
+        .limit(limit)
+        .exec();
+      
+      return doctors;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to get all doctors',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
   }
 
   // Analytics and reporting
@@ -302,165 +463,359 @@ class InMemoryDatabase {
     newPatientsThisMonth: number;
     averageAge: number;
     genderDistribution: Record<string, number>;
+    ageRange: { min: number; max: number };
   }> {
-    const patients = Array.from(this.patients.values());
-    const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    await this.ensureConnection();
     
-    const newThisMonth = patients.filter(p => new Date(p.createdAt) >= thisMonth).length;
-    
-    const ages = patients
-      .map(p => {
-        const birthDate = new Date(p.dateOfBirth);
-        return now.getFullYear() - birthDate.getFullYear();
-      })
-      .filter(age => age >= 0 && age <= 150);
-    
-    const averageAge = ages.length > 0 ? ages.reduce((sum, age) => sum + age, 0) / ages.length : 0;
-    
-    const genderDistribution: Record<string, number> = {};
-    patients.forEach(p => {
-      genderDistribution[p.gender] = (genderDistribution[p.gender] || 0) + 1;
-    });
-    
-    return {
-      totalPatients: patients.length,
-      newPatientsThisMonth: newThisMonth,
-      averageAge: Math.round(averageAge),
-      genderDistribution
-    };
+    try {
+      const stats = await Patient.getPatientStats();
+      return stats;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to get patient statistics',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      
+      return {
+        totalPatients: 0,
+        newPatientsThisMonth: 0,
+        averageAge: 0,
+        genderDistribution: {},
+        ageRange: { min: 0, max: 0 }
+      };
+    }
   }
 
   async getHealthRecordStats(): Promise<{
     totalRecords: number;
     recordsByType: Record<string, number>;
+    recordsBySeverity: Record<string, number>;
     recordsThisWeek: number;
     averageConfidence: number;
+    confidenceRange: { min: number; max: number };
   }> {
-    const records = Array.from(this.healthRecords.values());
-    const now = new Date();
-    const thisWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    await this.ensureConnection();
     
-    const recordsThisWeek = records.filter(r => new Date(r.timestamp) >= thisWeek).length;
-    
-    const recordsByType: Record<string, number> = {};
-    records.forEach(r => {
-      recordsByType[r.type] = (recordsByType[r.type] || 0) + 1;
-    });
-    
-    const confidenceScores = records
-      .map(r => r.confidence)
-      .filter(c => typeof c === 'number');
-    
-    const averageConfidence = confidenceScores.length > 0 
-      ? confidenceScores.reduce((sum, conf) => sum + conf, 0) / confidenceScores.length 
-      : 0;
-    
-    return {
-      totalRecords: records.length,
-      recordsByType,
-      recordsThisWeek,
-      averageConfidence: Math.round(averageConfidence)
-    };
+    try {
+      const stats = await HealthRecord.getRecordStats();
+      return stats;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to get health record statistics',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      
+      return {
+        totalRecords: 0,
+        recordsByType: {},
+        recordsBySeverity: {},
+        recordsThisWeek: 0,
+        averageConfidence: 0,
+        confidenceRange: { min: 0, max: 0 }
+      };
+    }
   }
 
-  // Utility methods
-  private generateId(prefix: string): string {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 9);
-    return `${prefix}_${timestamp}_${random}`;
+  // Additional utility methods
+  async searchPatients(query: string, limit: number = 10): Promise<IPatient[]> {
+    await this.ensureConnection();
+    
+    try {
+      const patients = await Patient.searchPatients(query, limit);
+      return patients;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to search patients: ${query}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
+  }
+
+  async searchDoctors(query: string, limit: number = 10): Promise<IDoctor[]> {
+    await this.ensureConnection();
+    
+    try {
+      const doctors = await Doctor.searchDoctors(query, limit);
+      return doctors;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: `Failed to search doctors: ${query}`,
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
+  }
+
+  async getUpcomingAppointments(limit: number = 50): Promise<IAppointment[]> {
+    await this.ensureConnection();
+    
+    try {
+      const appointments = await Appointment.findUpcoming(limit);
+      return appointments;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to get upcoming appointments',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
+  }
+
+  async getCriticalHealthRecords(limit: number = 20): Promise<IHealthRecord[]> {
+    await this.ensureConnection();
+    
+    try {
+      const records = await HealthRecord.findCriticalRecords(limit);
+      return records;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to get critical health records',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      return [];
+    }
+  }
+
+  async getAppointmentStats(): Promise<{
+    totalAppointments: number;
+    appointmentsThisMonth: number;
+    appointmentsThisWeek: number;
+    upcomingAppointments: number;
+    appointmentsByStatus: Record<string, number>;
+    appointmentsByType: Record<string, number>;
+    paymentsByStatus: Record<string, { count: number; totalAmount: number }>;
+  }> {
+    await this.ensureConnection();
+    
+    try {
+      const stats = await Appointment.getAppointmentStats();
+      return stats;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to get appointment statistics',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      
+      return {
+        totalAppointments: 0,
+        appointmentsThisMonth: 0,
+        appointmentsThisWeek: 0,
+        upcomingAppointments: 0,
+        appointmentsByStatus: {},
+        appointmentsByType: {},
+        paymentsByStatus: {}
+      };
+    }
+  }
+
+  async getDoctorStats(): Promise<{
+    totalDoctors: number;
+    verifiedDoctors: number;
+    specializationDistribution: Record<string, number>;
+    averageExperience: number;
+    experienceRange: { min: number; max: number };
+    averageRating: number;
+    totalRatings: number;
+  }> {
+    await this.ensureConnection();
+    
+    try {
+      const stats = await Doctor.getDoctorStats();
+      return stats;
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to get doctor statistics',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      
+      return {
+        totalDoctors: 0,
+        verifiedDoctors: 0,
+        specializationDistribution: {},
+        averageExperience: 0,
+        experienceRange: { min: 0, max: 0 },
+        averageRating: 0,
+        totalRatings: 0
+      };
+    }
   }
 
   // Data export/import for backup
   async exportData(): Promise<{
-    patients: Patient[];
-    healthRecords: HealthRecord[];
-    appointments: Appointment[];
-    doctors: Doctor[];
+    patients: IPatient[];
+    healthRecords: IHealthRecord[];
+    appointments: IAppointment[];
+    doctors: IDoctor[];
     exportedAt: string;
   }> {
-    return {
-      patients: Array.from(this.patients.values()),
-      healthRecords: Array.from(this.healthRecords.values()),
-      appointments: Array.from(this.appointments.values()),
-      doctors: Array.from(this.doctors.values()),
-      exportedAt: new Date().toISOString()
-    };
+    await this.ensureConnection();
+    
+    try {
+      const [patients, healthRecords, appointments, doctors] = await Promise.all([
+        Patient.find({ isActive: true }).exec(),
+        HealthRecord.find({ status: 'active' }).exec(),
+        Appointment.find().exec(),
+        Doctor.find({ isActive: true }).exec()
+      ]);
+      
+      return {
+        patients: patients.map(p => p.toObject()),
+        healthRecords: healthRecords.map(r => r.toObject()),
+        appointments: appointments.map(a => a.toObject()),
+        doctors: doctors.map(d => d.toObject()),
+        exportedAt: new Date().toISOString()
+      };
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to export data',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      throw error;
+    }
   }
 
   async importData(data: {
-    patients?: Patient[];
-    healthRecords?: HealthRecord[];
-    appointments?: Appointment[];
-    doctors?: Doctor[];
+    patients?: IPatient[];
+    healthRecords?: IHealthRecord[];
+    appointments?: IAppointment[];
+    doctors?: IDoctor[];
   }): Promise<void> {
-    if (data.patients) {
-      data.patients.forEach(patient => this.patients.set(patient.id, patient));
-    }
+    await this.ensureConnection();
     
-    if (data.healthRecords) {
-      data.healthRecords.forEach(record => this.healthRecords.set(record.id, record));
-    }
-    
-    if (data.appointments) {
-      data.appointments.forEach(appointment => this.appointments.set(appointment.id, appointment));
-    }
-    
-    if (data.doctors) {
-      data.doctors.forEach(doctor => this.doctors.set(doctor.id, doctor));
-    }
-    
-    // Clear cache after import
-    cache.clear();
-    
-    await logger.log({
-      level: 'info',
-      message: 'Data imported successfully',
-      metadata: {
-        patients: data.patients?.length || 0,
-        healthRecords: data.healthRecords?.length || 0,
-        appointments: data.appointments?.length || 0,
-        doctors: data.doctors?.length || 0
+    try {
+      const operations = [];
+      
+      if (data.patients) {
+        operations.push(Patient.insertMany(data.patients, { ordered: false }));
       }
-    });
+      
+      if (data.healthRecords) {
+        operations.push(HealthRecord.insertMany(data.healthRecords, { ordered: false }));
+      }
+      
+      if (data.appointments) {
+        operations.push(Appointment.insertMany(data.appointments, { ordered: false }));
+      }
+      
+      if (data.doctors) {
+        operations.push(Doctor.insertMany(data.doctors, { ordered: false }));
+      }
+      
+      await Promise.allSettled(operations);
+      
+      // Clear cache after import
+      cache.clear();
+      
+      await logger.log({
+        level: 'info',
+        message: 'Data imported successfully',
+        metadata: {
+          patients: data.patients?.length || 0,
+          healthRecords: data.healthRecords?.length || 0,
+          appointments: data.appointments?.length || 0,
+          doctors: data.doctors?.length || 0
+        }
+      });
+    } catch (error) {
+      await logger.log({
+        level: 'error',
+        message: 'Failed to import data',
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      throw error;
+    }
   }
 }
 
 // Global database instance
-export const db = new InMemoryDatabase();
+export const db = new MongoDatabase();
 
 // Initialize with sample data
 async function initializeSampleData() {
   try {
+    // Check if data already exists
+    const existingDoctors = await db.getAllDoctors(1);
+    if (existingDoctors.length > 0) {
+      await logger.log({
+        level: 'info',
+        message: 'Sample data already exists, skipping initialization'
+      });
+      return;
+    }
+
     // Create sample doctors
     await db.createDoctor({
-      firstName: 'Dr. Sarah',
+      firstName: 'Sarah',
       lastName: 'Johnson',
       email: 'sarah.johnson@healthcenter.com',
       specialization: 'Family Medicine',
       licenseNumber: 'MD123456',
       phone: '+1-555-0101',
+      qualifications: ['MD', 'Board Certified Family Medicine'],
+      experience: 8,
+      languages: ['en', 'hi'],
       availability: [
-        { dayOfWeek: 1, startTime: '09:00', endTime: '17:00' },
-        { dayOfWeek: 2, startTime: '09:00', endTime: '17:00' },
-        { dayOfWeek: 3, startTime: '09:00', endTime: '17:00' },
-        { dayOfWeek: 4, startTime: '09:00', endTime: '17:00' },
-        { dayOfWeek: 5, startTime: '09:00', endTime: '15:00' }
-      ]
+        { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { dayOfWeek: 3, startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { dayOfWeek: 4, startTime: '09:00', endTime: '17:00', isAvailable: true },
+        { dayOfWeek: 5, startTime: '09:00', endTime: '15:00', isAvailable: true }
+      ],
+      consultationFee: {
+        inPerson: 150,
+        video: 100,
+        phone: 75
+      },
+      address: {
+        street: '123 Medical Center Dr',
+        city: 'Healthcare City',
+        state: 'HC',
+        zipCode: '12345',
+        country: 'USA'
+      },
+      isVerified: true,
+      isActive: true
     });
 
     await db.createDoctor({
-      firstName: 'Dr. Michael',
+      firstName: 'Michael',
       lastName: 'Chen',
       email: 'michael.chen@healthcenter.com',
       specialization: 'Cardiology',
       licenseNumber: 'MD789012',
       phone: '+1-555-0102',
+      qualifications: ['MD', 'Board Certified Cardiology', 'Fellowship in Interventional Cardiology'],
+      experience: 12,
+      languages: ['en'],
       availability: [
-        { dayOfWeek: 1, startTime: '08:00', endTime: '16:00' },
-        { dayOfWeek: 3, startTime: '08:00', endTime: '16:00' },
-        { dayOfWeek: 5, startTime: '08:00', endTime: '12:00' }
-      ]
+        { dayOfWeek: 1, startTime: '08:00', endTime: '16:00', isAvailable: true },
+        { dayOfWeek: 3, startTime: '08:00', endTime: '16:00', isAvailable: true },
+        { dayOfWeek: 5, startTime: '08:00', endTime: '12:00', isAvailable: true }
+      ],
+      consultationFee: {
+        inPerson: 250,
+        video: 200,
+        phone: 150
+      },
+      address: {
+        street: '456 Cardiology Ave',
+        city: 'Healthcare City',
+        state: 'HC',
+        zipCode: '12345',
+        country: 'USA'
+      },
+      isVerified: true,
+      isActive: true
     });
 
     // Create sample patient
@@ -469,7 +824,7 @@ async function initializeSampleData() {
       lastName: 'Doe',
       email: 'john.doe@example.com',
       phone: '+1-555-0123',
-      dateOfBirth: '1985-06-15',
+      dateOfBirth: new Date('1985-06-15'),
       gender: 'male',
       bloodType: 'O+',
       allergies: ['Penicillin', 'Shellfish'],
@@ -479,7 +834,13 @@ async function initializeSampleData() {
         name: 'Jane Doe',
         phone: '+1-555-0124',
         relationship: 'Spouse'
-      }
+      },
+      preferences: {
+        language: 'en',
+        notifications: true,
+        dataSharing: false
+      },
+      isActive: true
     });
 
     await logger.log({
@@ -496,7 +857,8 @@ async function initializeSampleData() {
   }
 }
 
-// Initialize sample data on startup
-initializeSampleData();
+// Initialize sample data on startup (with delay to ensure connection)
+setTimeout(initializeSampleData, 2000);
 
-export type { Patient, HealthRecord, Appointment, Doctor };
+// Export types for compatibility
+export type { PatientType as Patient, HealthRecordType as HealthRecord, AppointmentType as Appointment, DoctorType as Doctor };

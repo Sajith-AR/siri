@@ -286,8 +286,8 @@ function extractActionItems(text: string): string[] {
   
   return actionItems.length > 0 ? actionItems : ["Follow up if symptoms persist"];
 }
-/
-/ Enhanced AI response functions
+
+// Enhanced AI response functions
 async function getEnhancedGeminiResponse(systemPrompt: string, message: string, context: any[]) {
   const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY!);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });

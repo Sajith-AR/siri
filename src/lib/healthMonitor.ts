@@ -221,6 +221,31 @@ healthMonitor.registerCheck('openai', async (): Promise<HealthStatus> => {
   }
 });
 
+healthMonitor.registerCheck('mongodb', async (): Promise<HealthStatus> => {
+  const start = Date.now();
+  
+  try {
+    const { checkDatabaseHealth } = await import('./mongodb');
+    const dbHealth = await checkDatabaseHealth();
+    
+    return {
+      service: 'mongodb',
+      status: dbHealth.status,
+      responseTime: dbHealth.responseTime,
+      timestamp: new Date().toISOString(),
+      details: dbHealth.details
+    };
+  } catch (error) {
+    return {
+      service: 'mongodb',
+      status: 'unhealthy',
+      responseTime: Date.now() - start,
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+});
+
 healthMonitor.registerCheck('memory', async (): Promise<HealthStatus> => {
   const start = Date.now();
   
