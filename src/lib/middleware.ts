@@ -79,28 +79,8 @@ export function withMiddleware(
         context.apiKey = authResult.apiKey;
       }
 
-      // Input validation for POST/PUT requests
-      if (options.validateInput && (req.method === 'POST' || req.method === 'PUT')) {
-        try {
-          const body = await req.json();
-          const validation = options.validateInput(body);
-          
-          if (!validation.isValid) {
-            return NextResponse.json(
-              {
-                error: "Validation failed",
-                details: validation.errors || ["Invalid input data"]
-              },
-              { status: 400 }
-            );
-          }
-        } catch (error) {
-          return NextResponse.json(
-            { error: "Invalid JSON in request body" },
-            { status: 400 }
-          );
-        }
-      }
+      // Input validation for POST/PUT requests is handled in the route handler
+      // to avoid reading the body twice
 
       // Execute the handler
       const response = await handler(context);

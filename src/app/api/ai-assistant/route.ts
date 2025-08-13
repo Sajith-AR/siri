@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withMiddleware } from "@/lib/middleware";
 import { aiAssistantRequestSchema, createValidator } from "@/lib/validation";
-import { medicalCache, hashObject } from "@/lib/cache";
 import { performanceMonitor } from "@/lib/healthMonitor";
-import { env, hasGemini, hasOpenAI } from "@/lib/env";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import OpenAI from "openai";
+import { aiService } from "@/lib/aiService";
 
 const validateAIRequest = createValidator(aiAssistantRequestSchema);
 
@@ -30,74 +27,21 @@ export const POST = withMiddleware(
 
       const { message, context, patientHistory } = validation.data!;
 
-      // Check cache for similar conversations
-      const contextHash = hashObject({ message, context: context?.slice(-3) });
-      const cacheKey = `ai:${contextHash}`;
-      const cached = medicalCache.get(cacheKey);
-      
-      if (cached) {
-        performanceMonitor.recordMetric('ai_assistant_cache_hit', Date.now() - startTime);
-        return NextResponse.json({
-          ...cached,
-          cached: true,
-          timestamp: new Date().toISOString()
-        });
-      }
+      // Use comprehensive AI service for health chat
+      const response = await aiService.processHealthChat(message, { context, patientHistory });
 
-      // Build comprehensive context for AI
-      const systemPrompt = buildEnhancedSystemPrompt(patientHistory, context, message);
-    
-      let response: any = null;
-      let provider = "Unknown";
-
-      // Try Gemini AI first
-      if (hasGemini) {
-        try {
-          response = await getEnhancedGeminiResponse(systemPrompt, message, context);
-          provider = "Gemini AI";
-          performanceMonitor.recordMetric('gemini_assistant_response_time', Date.now() - startTime);
-        } catch (error) {
-          console.error("Gemini AI assistant failed:", error);
-          performanceMonitor.recordMetric('gemini_assistant_failures', 1);
-        }
-      }
-
-      // Fallback to OpenAI
-      if (!response && hasOpenAI) {
-        try {
-          response = await getEnhancedOpenAIResponse(systemPrompt, message, context);
-          provider = "OpenAI GPT-4";
-          performanceMonitor.recordMetric('openai_assistant_response_time', Date.now() - startTime);
-        } catch (error) {
-          console.error("OpenAI assistant failed:", error);
-          performanceMonitor.recordMetric('openai_assistant_failures', 1);
-        }
-      }
-
-      // Enhanced fallback response
-      if (!response) {
-        response = await generateEnhancedFallbackResponse(message, context, patientHistory);
-        provider = "Enhanced Fallback Assistant";
-      }
-
-      // Enhance response with additional metadata
       const enhancedResponse = {
         ...response,
-        provider,
         conversationId: generateConversationId(context),
         sentiment: analyzeSentiment(message),
-        urgencyLevel: assessUrgency(message, response),
-        followUpSuggestions: generateFollowUpSuggestions(message, response),
         metadata: {
           processingTime: Date.now() - startTime,
-          modelVersion: '2.0',
-          contextLength: context?.length || 0
+          modelVersion: '3.0',
+          contextLength: context?.length || 0,
+          aiProvider: 'Gemini AI Enhanced'
         },
         timestamp: new Date().toISOString()
       };
-
-      // Cache the response
-      medicalCache.cacheAIResponse(cacheKey, enhancedResponse);
       
       // Record performance metrics
       performanceMonitor.recordMetric('ai_assistant_total_time', Date.now() - startTime);

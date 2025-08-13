@@ -1,60 +1,79 @@
 import { NextResponse } from "next/server";
-import { env, hasGemini } from "@/lib/env";
-import { analyzeHealthRisk } from "@/lib/gemini";
+import { withMiddleware } from "@/lib/middleware";
+import { aiService } from "@/lib/aiService";
+import { performanceMonitor } from "@/lib/healthMonitor";
 
-export async function POST(req: Request) {
-  try {
-    const data = await req.json();
-    const {
-      age,
-      symptoms,
-      vitalSigns,
-      medicalHistory,
-      lifestyle,
-      familyHistory,
-      currentMedications,
-      recentLabResults
-    } = data;
-
-    // Comprehensive health risk analysis
-    const riskProfile = await analyzeHealthRisk({
-      demographics: { age },
-      currentSymptoms: symptoms || [],
-      vitals: vitalSigns || {},
-      medicalHistory: medicalHistory || [],
-      lifestyle: lifestyle || {},
-      genetics: familyHistory || [],
-      medications: currentMedications || [],
-      labResults: recentLabResults || {}
-    });
-
-    // Calculate composite risk score
-    const riskScore = calculateCompositeRisk(riskProfile);
+export const POST = withMiddleware(
+  async ({ req }) => {
+    const startTime = Date.now();
     
-    // Generate personalized recommendations
-    const recommendations = generatePersonalizedRecommendations(riskProfile, riskScore);
+    try {
+      const data = await req.json();
+      const {
+        age,
+        symptoms,
+        vitalSigns,
+        medicalHistory,
+        lifestyle,
+        familyHistory,
+        currentMedications,
+        recentLabResults,
+        patientId
+      } = data;
 
-    return NextResponse.json({
-      riskScore,
-      riskLevel: getRiskLevel(riskScore),
-      riskFactors: riskProfile.riskFactors,
-      protectiveFactors: riskProfile.protectiveFactors,
-      recommendations,
-      nextScreening: calculateNextScreening(riskProfile),
-      emergencyFlags: riskProfile.emergencyFlags,
-      trendAnalysis: riskProfile.trends,
-      provider: "SIRI Health Risk Engine",
-      timestamp: new Date().toISOString()
-    });
+      // Use comprehensive AI service for health risk analysis
+      const riskProfile = await aiService.assessHealthRisk({
+        demographics: { age },
+        currentSymptoms: symptoms || [],
+        vitals: vitalSigns || {},
+        medicalHistory: medicalHistory || [],
+        lifestyle: lifestyle || {},
+        genetics: familyHistory || [],
+        medications: currentMedications || [],
+        labResults: recentLabResults || {}
+      }, patientId);
 
-  } catch (error) {
-    console.error("Health risk analysis error:", error);
-    return NextResponse.json(
-      { error: "Failed to analyze health risk" },
-      { status: 500 }
-    );
+      // Calculate composite risk score
+      const riskScore = calculateCompositeRisk(riskProfile);
+      
+      // Generate personalized recommendations
+      const recommendations = generatePersonalizedRecommendations(riskProfile, riskScore);
+
+      performanceMonitor.recordMetric('health_risk_analysis_success', 1);
+
+      return NextResponse.json({
+        ...riskProfile,
+        riskScore,
+        riskLevel: getRiskLevel(riskScore),
+        recommendations,
+        nextScreening: calculateNextScreening(riskProfile),
+        provider: "Gemini AI Enhanced Risk Engine",
+        timestamp: new Date().toISOString(),
+        metadata: {
+          processingTime: Date.now() - startTime,
+          version: '3.0',
+          aiProvider: 'Gemini AI Enhanced'
+        }
+      });
+
+    } catch (error) {
+      performanceMonitor.recordMetric('health_risk_analysis_errors', 1);
+      console.error("Health risk analysis error:", error);
+      
+      return NextResponse.json(
+        { 
+          error: "Failed to analyze health risk",
+          message: "Our health risk analysis service is temporarily unavailable.",
+          timestamp: new Date().toISOString()
+        },
+        { status: 500 }
+      );
+    }
+  },
+  {
+    rateLimit: { requests: 10, windowMs: 60000 }
   }
-}
+);
 
 function calculateCompositeRisk(profile: any): number {
   // Advanced risk calculation algorithm

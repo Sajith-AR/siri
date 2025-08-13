@@ -60,8 +60,7 @@ const AppointmentSchema = new Schema<IAppointment>({
   doctorId: {
     type: Schema.Types.ObjectId,
     ref: 'Doctor',
-    required: [true, 'Doctor ID is required'],
-    index: true
+    required: [true, 'Doctor ID is required']
   },
   dateTime: {
     type: Date,
@@ -71,8 +70,7 @@ const AppointmentSchema = new Schema<IAppointment>({
         return date > new Date();
       },
       message: 'Appointment date must be in the future'
-    },
-    index: true
+    }
   },
   endDateTime: {
     type: Date,
@@ -194,8 +192,7 @@ const AppointmentSchema = new Schema<IAppointment>({
       enum: {
         values: ['pending', 'paid', 'refunded', 'cancelled'],
         message: 'Payment status must be one of: pending, paid, refunded, cancelled'
-      },
-      index: true
+      }
     },
     paymentMethod: {
       type: String,
@@ -290,11 +287,9 @@ const AppointmentSchema = new Schema<IAppointment>({
 
 // Compound indexes for better performance
 AppointmentSchema.index({ patientId: 1, dateTime: 1 });
-AppointmentSchema.index({ doctorId: 1, dateTime: 1 });
 AppointmentSchema.index({ dateTime: 1, status: 1 });
 AppointmentSchema.index({ status: 1, createdAt: -1 });
 AppointmentSchema.index({ followUpRequired: 1, followUpDate: 1 });
-AppointmentSchema.index({ 'fee.paymentStatus': 1 });
 
 // Unique constraint to prevent double booking
 AppointmentSchema.index(

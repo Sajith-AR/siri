@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withMiddleware } from "@/lib/middleware";
 import { symptomCheckRequestSchema, createValidator } from "@/lib/validation";
-import { medicalCache, hashObject } from "@/lib/cache";
 import { performanceMonitor } from "@/lib/healthMonitor";
-import { env, hasGemini, hasOpenAI } from "@/lib/env";
-import { analyzeSymptoms } from "@/lib/gemini";
-import OpenAI from "openai";
+import { aiService } from "@/lib/aiService";
 import { getReferences } from "@/lib/medicalReferences";
 
 const validateSymptomCheck = createValidator(symptomCheckRequestSchema);
@@ -32,103 +29,26 @@ export const POST = withMiddleware(
       const { input, patientId, severity } = validation.data!;
       const text = input.trim();
 
-      // Check cache first
-      const cacheKey = `symptoms:${hashObject({ input: text, severity })}`;
-      const cached = medicalCache.get(cacheKey);
-      
-      if (cached) {
-        performanceMonitor.recordMetric('symptom_analysis_cache_hit', Date.now() - startTime);
-        return NextResponse.json({
-          ...cached,
-          cached: true,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      let analysis: any = null;
-      let provider = "Unknown";
-
-      // Try Gemini AI first (primary)
-      if (hasGemini) {
-        try {
-          analysis = await analyzeSymptoms(text);
-          provider = "Gemini AI";
-          performanceMonitor.recordMetric('gemini_response_time', Date.now() - startTime);
-        } catch (error) {
-          console.error("Gemini analysis failed:", error);
-          performanceMonitor.recordMetric('gemini_failures', 1);
-        }
-      }
-
-      // Fallback to OpenAI
-      if (!analysis && hasOpenAI) {
-        try {
-          const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
-          const completion = await client.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content: `You are an advanced medical AI assistant. Analyze symptoms and respond with JSON containing:
-                - risk: "low" | "medium" | "high" | "critical"
-                - conditions: array with {name, confidence, icd10Code?, description}
-                - nextSteps: array of specific actionable steps
-                - urgency: boolean for immediate medical attention
-                - explanation: detailed medical explanation
-                - redFlags: array of concerning symptoms that require immediate attention
-                - followUpRecommendations: timeline for follow-up care`
-              },
-              {
-                role: "user",
-                content: `Analyze these symptoms: "${text}"${severity ? ` (Patient-reported severity: ${severity})` : ''}`
-              }
-            ],
-            temperature: 0.2,
-            response_format: { type: "json_object" }
-          });
-
-          const content = completion.choices[0]?.message?.content;
-          if (!content) throw new Error("No content from OpenAI");
-          
-          analysis = JSON.parse(content);
-          provider = "OpenAI GPT-4";
-          performanceMonitor.recordMetric('openai_response_time', Date.now() - startTime);
-        } catch (error) {
-          console.error("OpenAI analysis failed:", error);
-          performanceMonitor.recordMetric('openai_failures', 1);
-        }
-      }
-
-      // Enhanced fallback heuristic analysis
-      if (!analysis) {
-        analysis = await performHeuristicAnalysis(text, severity);
-        provider = "Enhanced Heuristic Analysis";
-      }
-
-      // Enhance analysis with additional data
-      const enhancedAnalysis = await enhanceAnalysis(analysis, text, patientId);
+      // Use comprehensive AI service for symptom analysis
+      const analysis = await aiService.analyzeSymptoms(text, patientId);
       
       // Get medical references
       const references = getReferences(
-        (enhancedAnalysis.conditions ?? []).map((c: any) => c.name)
+        (analysis.conditions ?? []).map((c: any) => c.name)
       );
 
       const result = {
-        ...enhancedAnalysis,
+        ...analysis,
         references,
-        provider,
         severity: severity || 'unknown',
-        confidence: calculateConfidence(enhancedAnalysis, provider),
         metadata: {
           processingTime: Date.now() - startTime,
-          analysisVersion: '2.0',
-          patientId: patientId || null
+          analysisVersion: '3.0',
+          patientId: patientId || null,
+          aiProvider: 'Gemini AI Enhanced'
         },
         timestamp: new Date().toISOString()
       };
-
-      // Cache the result
-      medicalCache.cacheSymptomAnalysis(cacheKey, result);
       
       // Record performance metrics
       performanceMonitor.recordMetric('symptom_analysis_total_time', Date.now() - startTime);
